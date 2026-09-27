@@ -1,36 +1,86 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Henrico Recreation & Parks — Demo
 
-## Getting Started
+A demo Recreation Management Software System built for a Henrico County (VA)
+Recreation and Parks RFP walkthrough. **This is a demo, not a production
+system**: there is no real database, no real payments, and no real AI
+backend. Everything runs from static, synthetic seed data so the app can be
+reviewed and deployed with zero configuration and no API keys.
 
-First, run the development server:
+## Stack
+
+- [Next.js](https://nextjs.org/) (App Router) + TypeScript
+- [Tailwind CSS](https://tailwindcss.com/)
+- Deployed on [Vercel](https://vercel.com/)
+
+Dependencies are kept intentionally minimal — no state management library, no
+database client, no UI kit beyond Tailwind.
+
+## Running locally
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run build   # production build
+npm run lint    # ESLint
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+No environment variables or API keys are required to run or deploy this demo.
 
-## Learn More
+## Project structure
 
-To learn more about Next.js, take a look at the following resources:
+- `app/` — routes. `/` is the landing page with **Resident** and **Staff**
+  entry points; `/resident` and `/staff` are placeholder portals for now.
+- `data/seed.ts` — all synthetic demo data (facilities, programs, membership
+  tiers, members, transactions), generated with a seeded random number
+  generator so it's identical on every run.
+- `lib/data/` — the data access layer. Pages call functions like
+  `getPrograms()` here rather than importing `data/seed.ts` directly; a real
+  database would replace the contents of this folder without changing any
+  caller.
+- `lib/ai/provider.ts` — an `AIProvider` interface behind which any future
+  AI-assisted feature would sit.
+- `lib/payments/provider.ts` — a `PaymentProvider` interface for any future
+  registration/checkout flow.
+- `components/` — shared UI, including the header with the "Demo mode"
+  badge.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Demo data
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Generated in `data/seed.ts`:
 
-## Deploy on Vercel
+- 5 facilities (Tuckahoe Park, Deep Run Park, Dorey Park, Belmont Rec Center,
+  Hidden Creek)
+- 20 programs/classes across fitness, yoga, youth sports, art, and senior
+  wellness, each with a schedule, capacity, current enrollment, and price
+- 3 membership tiers (Individual, Family, Senior)
+- 200 members
+- ~12 months of membership and program-enrollment transaction history
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Current phase
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This is **Step 1: scaffold and shell only.** The Resident and Staff pages are
+placeholders that prove the data layer works (they render live counts from
+the seed data) — no registration, enrollment, or management features have
+been built yet. Those come in later phases.
+
+## Making it real
+
+Every external dependency this demo would need in production is hidden
+behind a small interface, with only a mock implementation wired up today.
+Replacing a placeholder means swapping the implementation behind its
+interface — callers shouldn't need to change.
+
+| Placeholder | File | What replacing it involves |
+| --- | --- | --- |
+| `MockProvider` (AI) | `lib/ai/provider.ts` | Add `@anthropic-ai/sdk`, implement `AnthropicProvider.generateText` using `client.messages.create`, set `ANTHROPIC_API_KEY` via `vercel env add`, and set `AI_PROVIDER=anthropic`. |
+| Seed data (`data/seed.ts`) via `lib/data/` | `lib/data/*.ts` | Stand up Postgres (e.g. Vercel Postgres via the Marketplace, or Supabase), write migrations for `facilities`, `programs`, `membership_tiers`, `members`, `transactions`, and replace each function body in `lib/data/` with a real query. Route/page code doesn't change. |
+| `MockPaymentProvider` | `lib/payments/provider.ts` | Integrate a real processor (e.g. Stripe), implement `charge()` against it, and add its secret key via `vercel env add`. No payments are processed today — this is a stub only. |
+| Auth (not yet implemented) | — | Add an auth provider (e.g. Auth.js, Clerk) in front of the Staff portal at minimum. |
+
+A small **Demo mode** badge in the header is a reminder, in the UI itself,
+that none of the above is wired to anything real yet.
