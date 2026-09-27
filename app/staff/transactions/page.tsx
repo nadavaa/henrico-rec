@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { getFacilities, getMembers, getMembershipTiers, getPrograms, getTransactions } from "@/lib/data";
 import { TransactionsTable } from "@/components/staff/transactions-table";
 
@@ -11,12 +12,14 @@ export default async function StaffTransactionsPage() {
   ]);
 
   return (
-    <TransactionsTable
-      transactions={transactions}
-      members={members}
-      programs={programs}
-      tiers={tiers}
-      facilities={facilities}
-    />
+    <Suspense>
+      <TransactionsTable
+        transactions={transactions}
+        members={members}
+        programs={programs}
+        tiers={tiers}
+        facilities={facilities}
+      />
+    </Suspense>
   );
 }

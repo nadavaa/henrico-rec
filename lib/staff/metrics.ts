@@ -58,10 +58,11 @@ export function buildTransactionRows(
   const seedRows: TransactionRow[] = transactions.map((t) => {
     const member = memberById.get(t.memberId);
     const memberName = member ? `${member.firstName} ${member.lastName}` : "Unknown";
+    const program = t.type === "enrollment" ? programById.get(t.programId ?? "") : undefined;
     const itemLabel =
       t.type === "membership"
         ? `${tierById.get(t.membershipTierId ?? "")?.name ?? "Membership"} Membership`
-        : (programById.get(t.programId ?? "")?.name ?? "Program");
+        : (program?.name ?? "Program");
 
     return {
       id: t.id,
@@ -72,19 +73,26 @@ export function buildTransactionRows(
       amountCents: t.amountCents,
       paymentMethod: paymentMethodFor(t.id),
       status: "Completed",
+      facilityId: t.type === "enrollment" ? program?.facilityId : member?.homeFacilityId,
+      programId: t.type === "enrollment" ? t.programId : undefined,
     };
   });
 
-  const sessionEnrollmentRows: TransactionRow[] = sessionBookings.map((b) => ({
-    id: b.id,
-    date: b.createdAt.slice(0, 10),
-    type: "enrollment",
-    memberName: b.participantName,
-    itemLabel: programById.get(b.programId)?.name ?? "Program",
-    amountCents: b.amountCents,
-    paymentMethod: paymentMethodFor(b.id),
-    status: "Completed",
-  }));
+  const sessionEnrollmentRows: TransactionRow[] = sessionBookings.map((b) => {
+    const program = programById.get(b.programId);
+    return {
+      id: b.id,
+      date: b.createdAt.slice(0, 10),
+      type: "enrollment",
+      memberName: b.participantName,
+      itemLabel: program?.name ?? "Program",
+      amountCents: b.amountCents,
+      paymentMethod: paymentMethodFor(b.id),
+      status: "Completed",
+      facilityId: program?.facilityId,
+      programId: b.programId,
+    };
+  });
 
   const sessionMembershipRows: TransactionRow[] = sessionMembership
     ? [
@@ -97,6 +105,8 @@ export function buildTransactionRows(
           amountCents: sessionMembership.amountCents,
           paymentMethod: paymentMethodFor(sessionMembership.id),
           status: "Completed",
+          facilityId: undefined,
+          programId: undefined,
         },
       ]
     : [];
@@ -245,3 +255,167 @@ export function getWaitlistCountForProgram(program: Program, bookings: ClassBook
 }
 
 export const STAFF_DEMO_RESIDENT_NAME = DEMO_RESIDENT.name;
+
+// ---------------------------------------------------------------------------
+// Additional aggregates used by the AI reporting assistant (lib/ai/reports.ts).
+// Kept here so the Staff dashboard and the AI answers are always computed the
+// same way and can never disagree.
+// ---------------------------------------------------------------------------
+
+export function computeProgramRevenue(transactionRows: TransactionRow[]): Map<string, number> {
+  const map = new Map<string, number>();
+  for (const row of transactionRows) {
+    if (row.type === "enrollment" && row.programId) {
+      map.set(row.programId, (map.get(row.programId) ?? 0) + row.amountCents);
+    }
+  }
+  return map;
+}
+
+export interface TopProgramRow {
+  programId: string;
+  programName: string;
+  park: string;
+  enrolled: number;
+  revenueCents: number;
+}
+
+export function computeTopPrograms(
+  programs: Program[],
+  facilities: Facility[],
+  transactionRows: TransactionRow[],
+  sessionBookings: ClassBooking[],
+  metric: "enrollment" | "revenue",
+  filters: StaffFilters,
+  limit: number,
+): TopProgramRow[] {
+  const facilityById = new Map(facilities.map((f) => [f.id, f]));
+  const revenueByProgram = computeProgramRevenue(transactionRows);
+  const scopedPrograms = programsForFacility(programs, filters.facilityId);
+
+  const rows: TopProgramRow[] = scopedPrograms.map((p) => ({
+    programId: p.id,
+    programName: p.name,
+    park: facilityById.get(p.facilityId)?.name ?? "—",
+    enrolled: effectiveEnrolled(p, sessionBookings),
+    revenueCents: revenueByProgram.get(p.id) ?? 0,
+  }));
+
+  rows.sort((a, b) => (metric === "enrollment" ? b.enrolled - a.enrolled : b.revenueCents - a.revenueCents));
+  return rows.slice(0, limit);
+}
+
+export interface WaitlistSummaryRow {
+  programId: string;
+  programName: string;
+  park: string;
+  schedule: string;
+  waitlistCount: number;
+}
+
+export function computeWaitlistSummary(
+  programs: Program[],
+  facilities: Facility[],
+  sessionBookings: ClassBooking[],
+  filters: StaffFilters,
+): WaitlistSummaryRow[] {
+  const facilityById = new Map(facilities.map((f) => [f.id, f]));
+  const scopedPrograms = programsForFacility(programs, filters.facilityId);
+
+  return scopedPrograms
+    .map((p) => ({
+      programId: p.id,
+      programName: p.name,
+      park: facilityById.get(p.facilityId)?.name ?? "—",
+      schedule: p.schedule,
+      waitlistCount: getWaitlistCount(p, sessionBookings),
+    }))
+    .filter((row) => row.waitlistCount > 0)
+    .sort((a, b) => b.waitlistCount - a.waitlistCount);
+}
+
+function monthKeyOf(dateStr: string): string {
+  return dateStr.slice(0, 7);
+}
+
+function monthLabel(monthKey: string): string {
+  return new Date(`${monthKey}-01T00:00:00Z`).toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+export interface MonthOverMonthResult {
+  metric: "revenue" | "enrollments" | "memberships";
+  currentMonthLabel: string;
+  previousMonthLabel: string;
+  currentValue: number;
+  previousValue: number;
+  pctChange: number | null; // null when previousValue is 0 (undefined percent change)
+}
+
+export function computeMonthOverMonth(
+  transactionRows: TransactionRow[],
+  metric: "revenue" | "enrollments" | "memberships",
+  today: Date,
+): MonthOverMonthResult {
+  const currentMonthKey = today.toISOString().slice(0, 7);
+  const prevDate = new Date(today);
+  prevDate.setDate(1);
+  prevDate.setMonth(prevDate.getMonth() - 1);
+  const previousMonthKey = prevDate.toISOString().slice(0, 7);
+
+  function valueForMonth(monthKey: string): number {
+    const rowsInMonth = transactionRows.filter((r) => monthKeyOf(r.date) === monthKey);
+    if (metric === "revenue") return rowsInMonth.reduce((sum, r) => sum + r.amountCents, 0);
+    if (metric === "enrollments") return rowsInMonth.filter((r) => r.type === "enrollment").length;
+    return rowsInMonth.filter((r) => r.type === "membership").length;
+  }
+
+  const currentValue = valueForMonth(currentMonthKey);
+  const previousValue = valueForMonth(previousMonthKey);
+  const pctChange = previousValue === 0 ? null : ((currentValue - previousValue) / previousValue) * 100;
+
+  return {
+    metric,
+    currentMonthLabel: monthLabel(currentMonthKey),
+    previousMonthLabel: monthLabel(previousMonthKey),
+    currentValue,
+    previousValue,
+    pctChange,
+  };
+}
+
+export interface MembershipsByParkRow {
+  facilityId: string;
+  park: string;
+  membershipsSold: number;
+  revenueCents: number;
+}
+
+export function computeMembershipsByPark(
+  facilities: Facility[],
+  transactionRows: TransactionRow[],
+  filters: StaffFilters,
+  today: Date,
+): MembershipsByParkRow[] {
+  const startDate = rangeStartDate(filters.rangeDays, today);
+  const scoped = transactionRows.filter(
+    (r) => r.type === "membership" && r.date >= startDate && r.facilityId,
+  );
+
+  const scopedFacilities = facilities.filter(
+    (f) => filters.facilityId === "all" || f.id === filters.facilityId,
+  );
+
+  return scopedFacilities.map((f) => {
+    const rows = scoped.filter((r) => r.facilityId === f.id);
+    return {
+      facilityId: f.id,
+      park: f.name,
+      membershipsSold: rows.length,
+      revenueCents: rows.reduce((sum, r) => sum + r.amountCents, 0),
+    };
+  });
+}

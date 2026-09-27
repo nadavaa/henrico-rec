@@ -2,15 +2,29 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { Facility, MembershipTier, Member, Program, Transaction } from "@/data/types";
 import { AskDataButton } from "./ask-data-panel";
 
 const TABS = [
   { href: "/staff", label: "Overview" },
   { href: "/staff/programs", label: "Programs" },
   { href: "/staff/transactions", label: "Transactions" },
+  { href: "/staff/ai-audit", label: "AI Audit" },
 ];
 
-export function StaffNav() {
+export function StaffNav({
+  facilities,
+  programs,
+  members,
+  tiers,
+  transactions,
+}: {
+  facilities: Facility[];
+  programs: Program[];
+  members: Member[];
+  tiers: MembershipTier[];
+  transactions: Transaction[];
+}) {
   const pathname = usePathname();
 
   return (
@@ -41,7 +55,13 @@ export function StaffNav() {
           })}
         </ul>
         <div className="py-2">
-          <AskDataButton />
+          <AskDataButton
+            facilities={facilities}
+            programs={programs}
+            members={members}
+            tiers={tiers}
+            transactions={transactions}
+          />
         </div>
       </div>
     </nav>

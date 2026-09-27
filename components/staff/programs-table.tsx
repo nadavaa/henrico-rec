@@ -2,13 +2,21 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import type { Facility, Program, Transaction } from "@/data/types";
+import { useSearchParams } from "next/navigation";
+import type { Facility, Member, MembershipTier, Program, Transaction } from "@/data/types";
 import { CATEGORY_LABELS } from "@/lib/resident/constants";
 import { useResidentSession } from "@/lib/resident/session-context";
 import { formatCents } from "@/lib/format";
-import { effectiveEnrolled, fillRatePct, getWaitlistCountForProgram } from "@/lib/staff/metrics";
+import {
+  buildTransactionRows,
+  computeProgramRevenue,
+  effectiveEnrolled,
+  fillRatePct,
+  getWaitlistCountForProgram,
+} from "@/lib/staff/metrics";
 
 type SortKey = "name" | "park" | "category" | "enrolled" | "waitlist" | "revenue";
+const SORT_KEYS: SortKey[] = ["name", "park", "category", "enrolled", "waitlist", "revenue"];
 
 function SortButton({
   column,
@@ -40,30 +48,33 @@ function SortButton({
 export function ProgramsTable({
   programs,
   facilities,
+  members,
+  tiers,
   transactions,
 }: {
   programs: Program[];
   facilities: Facility[];
+  members: Member[];
+  tiers: MembershipTier[];
   transactions: Transaction[];
 }) {
-  const { bookings } = useResidentSession();
-  const [sortKey, setSortKey] = useState<SortKey>("name");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const { bookings, membership } = useResidentSession();
+  const searchParams = useSearchParams();
+
+  const initialSort = searchParams.get("sort") as SortKey | null;
+  const initialDir = searchParams.get("dir");
+
+  const [sortKey, setSortKey] = useState<SortKey>(
+    initialSort && SORT_KEYS.includes(initialSort) ? initialSort : "name",
+  );
+  const [sortDir, setSortDir] = useState<"asc" | "desc">(initialDir === "desc" ? "desc" : "asc");
 
   const facilityById = useMemo(() => new Map(facilities.map((f) => [f.id, f])), [facilities]);
 
   const revenueByProgram = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const t of transactions) {
-      if (t.type === "enrollment" && t.programId) {
-        map.set(t.programId, (map.get(t.programId) ?? 0) + t.amountCents);
-      }
-    }
-    for (const b of bookings) {
-      map.set(b.programId, (map.get(b.programId) ?? 0) + b.amountCents);
-    }
-    return map;
-  }, [transactions, bookings]);
+    const rows = buildTransactionRows(transactions, members, programs, tiers, bookings, membership);
+    return computeProgramRevenue(rows);
+  }, [transactions, members, programs, tiers, bookings, membership]);
 
   const rows = useMemo(() => {
     return programs.map((p) => ({

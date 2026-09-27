@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SiteHeader } from "@/components/site-header";
 import { ResidentSessionProvider } from "@/lib/resident/session-context";
+import { AiAuditProvider } from "@/lib/ai/audit-context";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -34,7 +35,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           Skip to main content
         </a>
         <SiteHeader />
-        <ResidentSessionProvider>{children}</ResidentSessionProvider>
+        <ResidentSessionProvider>
+          <AiAuditProvider>{children}</AiAuditProvider>
+        </ResidentSessionProvider>
       </body>
     </html>
   );

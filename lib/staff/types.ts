@@ -48,4 +48,9 @@ export interface TransactionRow {
   amountCents: number;
   paymentMethod: string;
   status: "Completed";
+  // Undefined for session membership purchases (the demo resident has no
+  // single home facility in this model).
+  facilityId?: string;
+  // Only present on enrollment rows.
+  programId?: string;
 }

@@ -1,13 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import type { Facility, Member, MembershipTier, Program, Transaction } from "@/data/types";
 import { useResidentSession } from "@/lib/resident/session-context";
 import { formatCents } from "@/lib/format";
-import type { StaffFilters } from "@/lib/staff/types";
+import type { DateRangeDays, StaffFilters } from "@/lib/staff/types";
 import { buildTransactionRows } from "@/lib/staff/metrics";
 import { downloadCsv, transactionsToCsv } from "@/lib/staff/csv";
 import { FiltersBar } from "./filters-bar";
+
+const VALID_RANGES: DateRangeDays[] = [30, 90, 365];
 
 function rangeStart(rangeDays: number, today: Date): string {
   const d = new Date(today);
@@ -29,40 +32,32 @@ export function TransactionsTable({
   facilities: Facility[];
 }) {
   const { bookings, membership } = useResidentSession();
-  const [filters, setFilters] = useState<StaffFilters>({ facilityId: "all", rangeDays: 30 });
-  const today = useMemo(() => new Date(), []);
+  const searchParams = useSearchParams();
 
-  const memberById = useMemo(() => new Map(members.map((m) => [m.id, m])), [members]);
-  const programById = useMemo(() => new Map(programs.map((p) => [p.id, p])), [programs]);
+  const initialPark = searchParams.get("park");
+  const initialRange = Number(searchParams.get("range")) as DateRangeDays;
+
+  const [filters, setFilters] = useState<StaffFilters>({
+    facilityId: initialPark && facilities.some((f) => f.id === initialPark) ? initialPark : "all",
+    rangeDays: VALID_RANGES.includes(initialRange) ? initialRange : 30,
+  });
+  const today = useMemo(() => new Date(), []);
 
   const allRows = useMemo(
     () => buildTransactionRows(transactions, members, programs, tiers, bookings, membership),
     [transactions, members, programs, tiers, bookings, membership],
   );
 
-  const facilityForSeedTransaction = useMemo(() => {
-    const byId = new Map<string, string | undefined>();
-    for (const t of transactions) {
-      if (t.type === "enrollment" && t.programId) {
-        byId.set(t.id, programById.get(t.programId)?.facilityId);
-      } else {
-        byId.set(t.id, memberById.get(t.memberId)?.homeFacilityId);
-      }
-    }
-    return byId;
-  }, [transactions, programById, memberById]);
-
   const filteredRows = useMemo(() => {
     const startDate = rangeStart(filters.rangeDays, today);
     return allRows.filter((row) => {
       if (row.date < startDate) return false;
       if (filters.facilityId === "all") return true;
-      const facilityId = facilityForSeedTransaction.get(row.id);
-      // Session-generated rows (ids not in the seed map) always pass through,
-      // since the demo resident isn't tied to a single home facility.
-      return facilityId === undefined ? true : facilityId === filters.facilityId;
+      // Rows with no facility (e.g. the demo resident's membership purchase)
+      // always pass through, since they aren't tied to a single park.
+      return row.facilityId === undefined ? true : row.facilityId === filters.facilityId;
     });
-  }, [allRows, filters, today, facilityForSeedTransaction]);
+  }, [allRows, filters, today]);
 
   function handleExport() {
     const csv = transactionsToCsv(filteredRows);
