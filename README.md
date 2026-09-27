@@ -56,13 +56,20 @@ No environment variables or API keys are required to run or deploy this demo.
   dashboard and the AI assistant call these same functions, so their numbers
   can never disagree.
 - `lib/ai/` — the "Ask the data" reporting assistant.
-  - `lib/ai/intent-matcher.ts` — turns a question into one of 6 report
-    intents + parameters (keyword/regex matching today).
+  - `lib/ai/intent-catalog.ts` — the fixed list of 6 report intents and their
+    parameter schemas (the *only* form in which facility data reaches the
+    provider: public park id/name pairs as enum values, never a raw
+    `Facility` record).
+  - `lib/ai/intent-matcher.ts` — turns a question + catalog into one of the 6
+    report intents + parameters (keyword/regex matching today).
   - `lib/ai/reports.ts` — runs a matched intent against `lib/staff/metrics.ts`
     and returns the answer, a table, and a full trace (data sources, date
     range, a SQL-style query) for the "How I got this" panel.
   - `lib/ai/provider.ts` — `AIProvider` interface. The provider **only**
-    interprets a question into an intent; it never computes or sees a number.
+    interprets a question into an intent; it never computes or sees a
+    number, and its `interpretQuestion` signature makes it structurally
+    impossible to pass it resident records, names, payment data, or query
+    results (see the data-minimization note in that file).
   - `lib/ai/audit-context.tsx` — the session's AI audit log (also mounted at
     the root layout).
 - `lib/payments/provider.ts` — a `PaymentProvider` interface for the
@@ -105,6 +112,13 @@ Every question asked is logged to the session's AI audit log
 (`/staff/ai-audit`) with the question, matched intent, provider, data
 sources read, and a reviewer action ("Looks right" / "Flag as incorrect").
 
+**Data minimization:** the provider (mock or real) receives only the
+question text and the report-intent catalog (intents + parameter schemas,
+including public park id/name pairs) — never resident records, resident or
+staff names, payment data, or computed query results. This is enforced by
+`AIProvider.interpretQuestion`'s type signature, not just by convention. The
+"How I got this" panel states this on every answer.
+
 ## Making it real
 
 Every external dependency this demo would need in production is hidden
@@ -141,6 +155,31 @@ is the only stubbed method. To make it real:
 
 `AnthropicProvider` is never constructed unless `AI_PROVIDER=anthropic`
 (see `getAIProvider()`), so this demo runs with zero API keys by default.
+
+### Choosing a real AI provider
+
+`AIProvider` is an interface, not a commitment to one vendor or hosting
+model. Three options the County could choose between, in increasing order
+of operational control (and cost/complexity):
+
+1. **Hosted model via API** — call a provider's API directly (e.g. the
+   Anthropic API), as `AnthropicProvider` is scaffolded to do. Fastest to
+   stand up; the request/response for each question leaves County
+   infrastructure over the network.
+2. **Model deployed in the County's own US cloud account** — the same
+   model, run through a managed offering inside a County-owned cloud
+   account in a US region (e.g. AWS Bedrock, Google Cloud Vertex AI, or
+   Azure AI Foundry), so inference traffic never leaves County-controlled
+   infrastructure. Same `AIProvider` interface; only the SDK/client inside
+   `AnthropicProvider` (or a renamed equivalent) changes.
+3. **Self-hosted, US-developed open-weight model** — run entirely on
+   infrastructure the County operates, with no external API calls at all.
+   Highest control and highest operational overhead (hosting, scaling,
+   evaluation all become the County's responsibility).
+
+Any of these must be reviewed and approved by County IT under the RFP's AI
+clause before use. Regardless of hosting model, **models not developed in
+the United States are prohibited.**
 
 A small **Demo mode** badge in the header is a reminder, in the UI itself,
 that none of the above is wired to anything real yet.

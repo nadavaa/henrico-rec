@@ -1,5 +1,5 @@
-import type { Facility } from "@/data/types";
 import type { DateRangeDays } from "@/lib/staff/types";
+import type { ReportCatalog, ReportParamOption } from "./intent-catalog";
 import type { CapacityDirection, IntentMatch, TopMetric, TrendMetric } from "./types";
 
 // This is the entire "AI" in MockProvider: cheap, transparent keyword/regex
@@ -7,6 +7,10 @@ import type { CapacityDirection, IntentMatch, TopMetric, TrendMetric } from "./t
 // a number. AnthropicProvider (lib/ai/provider.ts) would replace this file's
 // job with a real model call, but the split between "interpret" and
 // "compute" stays identical either way.
+//
+// It only reads facility id/name pairs off the catalog it's handed (never
+// the raw facilities list) — the same data-minimization boundary the
+// provider itself is held to.
 
 export const SUPPORTED_QUESTIONS_HELP = [
   "Memberships sold by park (e.g. \"How many memberships were sold at Deep Run Park?\")",
@@ -17,9 +21,18 @@ export const SUPPORTED_QUESTIONS_HELP = [
   "Month-over-month change in revenue, enrollments, or memberships",
 ].join("; ");
 
-function detectFacility(text: string, facilities: Facility[]): string | undefined {
+function facilityOptionsFrom(catalog: ReportCatalog): ReportParamOption[] {
+  for (const def of catalog) {
+    const param = def.parameters.find((p) => p.name === "facilityId");
+    if (param?.options) return param.options;
+  }
+  return [];
+}
+
+function detectFacility(text: string, facilityOptions: ReportParamOption[]): string | undefined {
   const lower = text.toLowerCase();
-  return facilities.find((f) => lower.includes(f.name.toLowerCase()))?.id;
+  const match = facilityOptions.find((f) => lower.includes(String(f.label).toLowerCase()));
+  return match ? String(match.value) : undefined;
 }
 
 function detectRangeDays(text: string): DateRangeDays {
@@ -34,12 +47,15 @@ function detectLimit(text: string): number {
   return 5;
 }
 
-export function matchIntent(question: string, facilities: Facility[]): IntentMatch | null {
+export function matchIntent(question: string, catalog: ReportCatalog): IntentMatch | null {
   const q = question.trim();
   if (!q) return null;
 
-  const facilityId = detectFacility(q, facilities);
-  const facilityNote = facilityId ? `park="${facilities.find((f) => f.id === facilityId)?.name}"` : "";
+  const facilityOptions = facilityOptionsFrom(catalog);
+  const facilityId = detectFacility(q, facilityOptions);
+  const facilityNote = facilityId
+    ? `park="${facilityOptions.find((f) => f.value === facilityId)?.label}"`
+    : "";
 
   // 1. Waitlist — most specific keyword, check first.
   if (/waitlist/i.test(q)) {

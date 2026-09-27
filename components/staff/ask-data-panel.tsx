@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { Facility, MembershipTier, Member, Program, Transaction } from "@/data/types";
 import { useResidentSession } from "@/lib/resident/session-context";
 import { useAiAudit } from "@/lib/ai/audit-context";
 import { getAIProvider } from "@/lib/ai/provider";
+import { buildReportIntentCatalog } from "@/lib/ai/intent-catalog";
 import { runReport } from "@/lib/ai/reports";
 import type { IntentMatch, ReportResult } from "@/lib/ai/types";
 import type { ReviewerAction } from "@/lib/ai/audit-types";
@@ -89,13 +90,22 @@ export function AskDataButton({
     setOpen(false);
   }
 
+  // The catalog is the ONLY facility-shaped thing the provider ever sees —
+  // id/name pairs as enum values on the facilityId parameter, not raw
+  // Facility records. See the data-minimization note on
+  // AIProvider.interpretQuestion.
+  const catalog = useMemo(
+    () => buildReportIntentCatalog(facilities.map((f) => ({ id: f.id, name: f.name }))),
+    [facilities],
+  );
+
   async function ask(question: string) {
     const trimmed = question.trim();
     if (!trimmed) return;
     setAnswer({ kind: "loading", question: trimmed });
 
     const provider = getAIProvider();
-    const interpretation = await provider.interpretQuestion(trimmed, { facilities });
+    const interpretation = await provider.interpretQuestion(trimmed, catalog);
 
     if (!interpretation.match) {
       const auditId = logQuestion({

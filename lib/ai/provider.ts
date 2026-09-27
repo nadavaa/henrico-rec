@@ -9,24 +9,36 @@
 //
 // Selected by env var AI_PROVIDER ("mock" | "anthropic"), default "mock".
 
-import type { Facility } from "@/data/types";
 import { matchIntent, SUPPORTED_QUESTIONS_HELP } from "./intent-matcher";
+import type { ReportCatalog } from "./intent-catalog";
 import type { InterpretResult } from "./types";
-
-export interface InterpretContext {
-  facilities: Facility[];
-}
 
 export interface AIProvider {
   readonly name: string;
-  interpretQuestion(question: string, context: InterpretContext): Promise<InterpretResult>;
+
+  /**
+   * DATA MINIMIZATION BOUNDARY — Henrico RFP AI clause, items 5, 9, 10.
+   *
+   * This method's only inputs are the staff member's raw question text and
+   * `catalog`, the fixed list of supported report intents and their
+   * parameter schemas (built by `buildReportIntentCatalog`, which includes
+   * only public park id/name pairs as enum values). There is no parameter
+   * through which resident records, resident or staff names, payment data,
+   * or computed query results could reach the provider — real or mock. The
+   * provider picks an intent + parameters; `lib/ai/reports.ts` is the only
+   * code that ever touches actual county data to compute an answer.
+   *
+   * Do not widen this signature to accept `lib/data` results, session state,
+   * or anything shaped like a resident/member/transaction record.
+   */
+  interpretQuestion(question: string, catalog: ReportCatalog): Promise<InterpretResult>;
 }
 
 export class MockProvider implements AIProvider {
   readonly name = "mock";
 
-  async interpretQuestion(question: string, context: InterpretContext): Promise<InterpretResult> {
-    const match = matchIntent(question, context.facilities);
+  async interpretQuestion(question: string, catalog: ReportCatalog): Promise<InterpretResult> {
+    const match = matchIntent(question, catalog);
     if (!match) {
       return {
         match: null,
@@ -49,25 +61,32 @@ export class MockProvider implements AIProvider {
 // 2. Read the API key from `process.env.ANTHROPIC_API_KEY` (set via
 //    `vercel env add ANTHROPIC_API_KEY`); throw a clear error at
 //    construction time if it's missing.
-// 3. In `interpretQuestion`, call `client.messages.create({ model: this.model,
-//    system: SYSTEM_PROMPT, tools: [RUN_REPORT_TOOL], tool_choice: { type:
-//    "tool", name: "run_report" }, messages: [{ role: "user", content:
-//    question }] })`.
-// 4. Read the tool_use block's `input` off the response — that's your
+// 3. Build that request's tool schema from `catalog` (the `facilityId`
+//    parameter's `options` give you its enum + descriptions) rather than the
+//    static RUN_REPORT_TOOL below — RUN_REPORT_TOOL is a shape reference,
+//    not something to send verbatim, since the real facility list changes.
+//    Preserve the data-minimization boundary here too: only `question` and
+//    values already present in `catalog` may go into the request.
+// 4. Call `client.messages.create({ model: this.model, system: SYSTEM_PROMPT,
+//    tools: [<the catalog-derived tool>], tool_choice: { type: "tool", name:
+//    "run_report" }, messages: [{ role: "user", content: question }] })`.
+// 5. Read the tool_use block's `input` off the response — that's your
 //    `{ intent, ...params }`. Validate it against the same `ReportIntent`
 //    union used by the mock matcher, then return `{ match: { intent, params,
 //    matchedOn: "anthropic tool call" }, providerName: this.name }`.
-// 5. If the model declines to call the tool (it judged the question
+// 6. If the model declines to call the tool (it judged the question
 //    unsupported), surface its text response as `reason` instead — still no
 //    fabricated numbers, since only `runReport` ever produces figures.
 
 export const SYSTEM_PROMPT = `You are a reporting assistant for Henrico County Recreation & Parks staff.
 
-You do not have access to raw resident or financial data, and you never state
-a number yourself. Your only job is to read the staff member's question and
-call the "run_report" tool with the report intent and parameters that best
-match it. The application code runs the actual report against the county's
-data and returns the figures — you never see them and never invent them.
+You are never given resident records, resident or staff names, payment data,
+or query results — only the staff member's question text and the schema of
+supported reports. You never state a number yourself. Your only job is to
+read the staff member's question and call the "run_report" tool with the
+report intent and parameters that best match it. The application code runs
+the actual report against the county's data and returns the figures — you
+never see them and never invent them.
 
 If the question doesn't clearly match one of the supported report intents,
 do not call the tool. Instead, reply in plain text that you can't answer it
@@ -130,7 +149,7 @@ export class AnthropicProvider implements AIProvider {
   readonly name = "anthropic";
   private readonly model = process.env.AI_MODEL ?? "claude-sonnet-5";
 
-  async interpretQuestion(_question: string, _context: InterpretContext): Promise<InterpretResult> {
+  async interpretQuestion(_question: string, _catalog: ReportCatalog): Promise<InterpretResult> {
     void this.model;
     throw new Error(
       "AnthropicProvider is a stub. Implement it in lib/ai/provider.ts (see the TODO above) before setting AI_PROVIDER=anthropic.",

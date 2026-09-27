@@ -157,6 +157,9 @@ export function AnswerCard({
                   ? "Demo provider: rule-based intent matching (no model call). In production, AnthropicProvider would route this question to a US-hosted Claude model, which would choose the same intent and parameters — it would still never compute the numbers itself."
                   : `Provider: ${providerName}.`}
               </p>
+              <p className="mt-1 font-medium text-slate-900">
+                Data sent to the AI model: question text and report definitions only. No resident data.
+              </p>
             </div>
 
             <div>
