@@ -1,88 +1,116 @@
 import Link from "next/link";
 
-type Status = "Demonstrated" | "Designed for" | "Roadmap";
+type Status = "Demonstrated" | "Partially demonstrated" | "Designed for" | "Roadmap";
 
 interface CoverageRow {
   area: string;
   status: Status;
-  note: string;
+  shows: string;
+  where: string;
 }
 
+// RFP No. 26-2996-8ARA, Section II.A — exact order and wording.
 const FUNCTIONAL_AREAS: CoverageRow[] = [
   {
-    area: "Resident registration & self-service accounts",
+    area: "Technical and Hosting",
+    status: "Partially demonstrated",
+    shows: "Deployed as a live, web-based Next.js app on Vercel.",
+    where: "Vercel deployment; next.config.ts",
+  },
+  {
+    area: "Security and Compliance",
+    status: "Partially demonstrated",
+    shows:
+      "AI data-minimization boundary, an AI audit log, and a no-training-on-County-data design; no authentication, PCI, or encryption work.",
+    where: "lib/ai/provider.ts; /staff/ai-audit",
+  },
+  {
+    area: "Membership Management",
     status: "Demonstrated",
-    note: "Resident portal with a fixed demo account (no login system yet).",
+    shows: "3 membership tiers, a purchase flow, and a digital membership card with a check-in QR code.",
+    where: "/resident/memberships; /resident/account",
   },
   {
-    area: "Online program & class registration",
+    area: "Integration and Data Exchange",
+    status: "Partially demonstrated",
+    shows:
+      "CSV export of transactions and a swappable data-access layer for a future database or finance integration; no live external integrations.",
+    where: "/staff/transactions; lib/data/",
+  },
+  {
+    area: "Access Control",
+    status: "Partially demonstrated",
+    shows:
+      "A scannable membership QR code and a staff-side roster check-in toggle; no door/scanner hardware integration.",
+    where: "/resident/account; /staff/programs/[id]",
+  },
+  {
+    area: "Mobile",
     status: "Demonstrated",
-    note: "Browse, filter, and book a class in a 3-step flow with waiver + mock checkout.",
+    shows:
+      "Mobile-first Resident portal and a responsive Staff dashboard (stacking KPIs/charts, collapsing filters, scrollable tables).",
+    where: "app/resident/; app/staff/",
   },
   {
-    area: "Membership sales & management",
-    status: "Demonstrated",
-    note: "3 tiers, purchase flow, and a digital membership card with a check-in QR code.",
+    area: "Profile Setup and Account Management",
+    status: "Partially demonstrated",
+    shows:
+      "A My Account page with bookings, waitlist positions, and the membership card; a single fixed demo resident, no sign-up, login, or family accounts.",
+    where: "/resident/account; lib/resident/demo-resident.ts",
   },
   {
-    area: "Waitlist management",
-    status: "Demonstrated",
-    note: "Automatic waitlisting at capacity, with position shown to the resident and staff.",
-  },
-  {
-    area: "Facility & park directory",
-    status: "Demonstrated",
-    note: "5 seeded facilities with address, description, and amenities.",
-  },
-  {
-    area: "Payment processing / POS",
-    status: "Designed for",
-    note: "MockPaymentProvider behind a PaymentProvider interface (lib/payments/provider.ts) — no real processor wired up.",
-  },
-  {
-    area: "Financial reporting & reconciliation",
-    status: "Demonstrated",
-    note: "Revenue by month, transactions table, and CSV export on the Staff side.",
-  },
-  {
-    area: "Facility/room/field reservations & permitting",
+    area: "Administration and Controls",
     status: "Roadmap",
-    note: "This demo covers class/program scheduling only, not general space rental or permits.",
+    shows:
+      "Not in the demo: a single fixed \"Demo Staff\" user, with no roles, permissions, or configuration screens or code.",
+    where: "—",
   },
   {
-    area: "Front-desk check-in & attendance",
-    status: "Demonstrated",
-    note: "Per-class roster with a check-in toggle for staff.",
+    area: "Financial and Payments",
+    status: "Partially demonstrated",
+    shows:
+      "Mock checkout, a transactions table, revenue reporting, and CSV export; a real payment processor is a placeholder interface only.",
+    where: "lib/payments/provider.ts; /staff/transactions",
   },
   {
-    area: "Staff administration, roles & permissions",
-    status: "Designed for",
-    note: "A single fixed \"Demo Staff\" user today; no login, roles, or permission system yet.",
-  },
-  {
-    area: "Reporting, analytics & AI-assisted insights",
-    status: "Demonstrated",
-    note: "Staff dashboard KPIs/charts plus the \"Ask the data\" AI reporting assistant.",
-  },
-  {
-    area: "Communications & notifications",
+    area: "Marketing and Communications",
     status: "Roadmap",
-    note: "No email/SMS reminders or waitlist notifications in this demo.",
+    shows: "Not in the demo: no email/SMS, campaigns, or resident notifications.",
+    where: "—",
   },
   {
-    area: "Discounts, scholarships & financial assistance",
+    area: "Facility and Shelters",
+    status: "Partially demonstrated",
+    shows:
+      "A directory of 5 facilities with address, description, and amenities; shelter/space reservations are out of scope.",
+    where: "data/seed.ts; /staff/programs",
+  },
+  {
+    area: "Program and Activity",
+    status: "Demonstrated",
+    shows: "Browse, filter, book, capacity tracking, automatic waitlisting, and staff rosters.",
+    where: "/resident (browse & book); /staff/programs",
+  },
+  {
+    area: "Waiver and Forms",
+    status: "Demonstrated",
+    shows:
+      "A liability waiver with a required typed signature, blocking booking or membership purchase until signed.",
+    where: "components/resident/booking-wizard.tsx",
+  },
+  {
+    area: "Reporting and Analytics",
+    status: "Demonstrated",
+    shows:
+      "Staff KPIs and charts (each with a table view), capacity alerts, and an AI reporting assistant with full traceability.",
+    where: "/staff; /staff/ai-audit; lib/staff/metrics.ts",
+  },
+  {
+    area: "Training and Implementation",
     status: "Roadmap",
-    note: "Not modeled in the seed data or checkout flow.",
-  },
-  {
-    area: "Data export & integration",
-    status: "Demonstrated",
-    note: "CSV export of transactions; lib/data/ is a swappable seam for a future real database or integration.",
-  },
-  {
-    area: "Accessibility (Section 508) & mobile responsiveness",
-    status: "Demonstrated",
-    note: "Semantic HTML, labeled fields, visible focus states, keyboard navigation, and mobile-first layouts throughout.",
+    shows:
+      "Not software: addressed in the written proposal (project plan, data conversion, training and testing plans per RFP Section II.B).",
+    where: "—",
   },
 ];
 
@@ -131,17 +159,26 @@ const AI_CLAUSE_MAPPING: AiClauseRow[] = [
 
 const STATUS_STYLES: Record<Status, string> = {
   Demonstrated: "bg-emerald-100 text-emerald-800",
+  "Partially demonstrated": "bg-blue-100 text-blue-800",
   "Designed for": "bg-amber-100 text-amber-900",
   Roadmap: "bg-slate-200 text-slate-700",
 };
 
+const STATUS_ORDER: Status[] = ["Demonstrated", "Partially demonstrated", "Designed for", "Roadmap"];
+
 function StatusBadge({ status }: { status: Status }) {
-  const label = status === "Designed for" ? "Designed for (placeholder in code)" : status;
   return (
     <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[status]}`}>
-      {label}
+      {status}
     </span>
   );
+}
+
+function statusCounts(rows: CoverageRow[]): { status: Status; count: number }[] {
+  return STATUS_ORDER.map((status) => ({
+    status,
+    count: rows.filter((r) => r.status === status).length,
+  })).filter((s) => s.count > 0);
 }
 
 export default function RfpCoveragePage() {
@@ -160,40 +197,61 @@ export default function RfpCoveragePage() {
         </p>
         <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">RFP Coverage</h1>
         <p className="mt-2 max-w-3xl text-slate-600">
-          How this demo maps to the RFP&apos;s 15 functional areas. <strong>Demonstrated</strong> means
-          you can click through it right now; <strong>Designed for</strong> means the interface/seam
-          exists in code with a mock behind it; <strong>Roadmap</strong> means it&apos;s out of scope for
-          this demo.
+          Mapped to the 15 functional areas in Henrico County RFP No. 26-2996-8ARA, Section II.A.
+          Detailed line-item requirements (Attachment J) would be addressed in the full proposal.
+        </p>
+        <p className="mt-2 max-w-3xl text-slate-600">
+          <strong>Demonstrated</strong> means working end to end in the demo;{" "}
+          <strong>Partially demonstrated</strong> means some of it works, the rest is a placeholder;{" "}
+          <strong>Designed for</strong> means the interface/placeholder exists in code with no working
+          UI; <strong>Roadmap</strong> means it&apos;s not in the demo.
         </p>
 
         <div className="mt-6 overflow-x-auto rounded-xl border border-slate-200 bg-white">
-          <table className="w-full min-w-[640px] text-left text-sm">
+          <table className="w-full min-w-[900px] text-left text-sm">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50">
                 <th scope="col" className="px-3 py-2 font-medium text-slate-600">
-                  Functional area
+                  #
+                </th>
+                <th scope="col" className="px-3 py-2 font-medium text-slate-600">
+                  Functional area (RFP Section II.A)
                 </th>
                 <th scope="col" className="px-3 py-2 font-medium text-slate-600">
                   Status
                 </th>
                 <th scope="col" className="px-3 py-2 font-medium text-slate-600">
-                  Note
+                  What the demo shows
+                </th>
+                <th scope="col" className="px-3 py-2 font-medium text-slate-600">
+                  Where it lives
                 </th>
               </tr>
             </thead>
             <tbody>
-              {FUNCTIONAL_AREAS.map((row) => (
+              {FUNCTIONAL_AREAS.map((row, i) => (
                 <tr key={row.area} className="border-b border-slate-100 last:border-0 align-top">
+                  <td className="whitespace-nowrap px-3 py-2 text-slate-500">{i + 1}</td>
                   <td className="whitespace-normal px-3 py-2 font-medium text-slate-900">{row.area}</td>
                   <td className="whitespace-nowrap px-3 py-2">
                     <StatusBadge status={row.status} />
                   </td>
-                  <td className="whitespace-normal px-3 py-2 text-slate-600">{row.note}</td>
+                  <td className="whitespace-normal px-3 py-2 text-slate-600">{row.shows}</td>
+                  <td className="whitespace-normal px-3 py-2 font-mono text-xs text-slate-500">
+                    {row.where}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+
+        <p className="mt-3 text-sm text-slate-500">
+          {statusCounts(FUNCTIONAL_AREAS)
+            .map((s) => `${s.count} ${s.status}`)
+            .join(" · ")}
+          {" "}(15 total)
+        </p>
 
         <h2 className="mt-10 text-xl font-bold text-slate-900">
           AI Clause (Section VIII.C) Coverage
