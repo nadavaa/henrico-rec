@@ -136,6 +136,14 @@ staff names, payment data, or computed query results. This is enforced by
 `AIProvider.interpretQuestion`'s type signature, not just by convention. The
 "How I got this" panel states this on every answer.
 
+## Accessibility
+
+A Lighthouse accessibility audit was run against core resident and staff
+pages, scoring 95/100, addressing the RFP's Section 508/WCAG 2.1 AA
+requirement at a page level. This is not the full Accessibility Conformance
+Report that Attachment J requires as a contract deliverable — that is a
+roadmap item, not something this demo attempts.
+
 ## Making it real
 
 Every external dependency this demo would need in production is hidden
