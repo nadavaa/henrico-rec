@@ -2,7 +2,8 @@
 
 import { createContext, useContext, useMemo, useState } from "react";
 import type { ReportIntent } from "./types";
-import { DEMO_STAFF_USER, type AuditEntry, type ReviewerAction } from "./audit-types";
+import { useStaffRole } from "@/lib/staff/role-context";
+import type { AuditEntry, ReviewerAction } from "./audit-types";
 
 interface AiAuditValue {
   entries: AuditEntry[];
@@ -12,6 +13,7 @@ interface AiAuditValue {
     provider: string;
     dataSources: string[];
   }) => string;
+  logAccess: () => void;
   setReviewerAction: (id: string, action: ReviewerAction) => void;
 }
 
@@ -25,6 +27,7 @@ function createId(): string {
 
 export function AiAuditProvider({ children }: { children: React.ReactNode }) {
   const [entries, setEntries] = useState<AuditEntry[]>([]);
+  const { role, staffUser } = useStaffRole();
 
   const value = useMemo<AiAuditValue>(
     () => ({
@@ -34,7 +37,9 @@ export function AiAuditProvider({ children }: { children: React.ReactNode }) {
         const entry: AuditEntry = {
           id,
           timestamp: new Date().toISOString(),
-          staffUser: DEMO_STAFF_USER,
+          eventType: "question",
+          staffUser,
+          role,
           question: input.question,
           intent: input.intent,
           provider: input.provider,
@@ -44,11 +49,26 @@ export function AiAuditProvider({ children }: { children: React.ReactNode }) {
         setEntries((prev) => [entry, ...prev]);
         return id;
       },
+      logAccess: () => {
+        const entry: AuditEntry = {
+          id: createId(),
+          timestamp: new Date().toISOString(),
+          eventType: "access",
+          staffUser,
+          role,
+          question: "Opened the AI reporting assistant",
+          intent: null,
+          provider: "—",
+          dataSources: [],
+          reviewerAction: "none",
+        };
+        setEntries((prev) => [entry, ...prev]);
+      },
       setReviewerAction: (id, action) => {
         setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, reviewerAction: action } : e)));
       },
     }),
-    [entries],
+    [entries, role, staffUser],
   );
 
   return <AiAuditContext.Provider value={value}>{children}</AiAuditContext.Provider>;

@@ -3,6 +3,8 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { Facility, MembershipTier, Member, Program, Transaction } from "@/data/types";
 import { useResidentSession } from "@/lib/resident/session-context";
+import { useStaffRole } from "@/lib/staff/role-context";
+import { can } from "@/lib/staff/roles";
 import { useAiAudit } from "@/lib/ai/audit-context";
 import { getAIProvider } from "@/lib/ai/provider";
 import { buildReportIntentCatalog } from "@/lib/ai/intent-catalog";
@@ -51,7 +53,9 @@ export function AskDataButton({
   const [answer, setAnswer] = useState<AnswerState | null>(null);
 
   const { bookings, membership } = useResidentSession();
-  const { logQuestion, setReviewerAction } = useAiAudit();
+  const { logQuestion, logAccess, setReviewerAction } = useAiAudit();
+  const { role } = useStaffRole();
+  const canUseAssistant = can(role, "ai_assistant");
 
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -101,7 +105,7 @@ export function AskDataButton({
 
   async function ask(question: string) {
     const trimmed = question.trim();
-    if (!trimmed) return;
+    if (!trimmed || !canUseAssistant) return;
     setAnswer({ kind: "loading", question: trimmed });
 
     const provider = getAIProvider();
@@ -158,12 +162,17 @@ export function AskDataButton({
     setAnswer({ ...answer, reviewerAction: action });
   }
 
+  if (!canUseAssistant) return null;
+
   return (
     <>
       <button
         ref={triggerRef}
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          logAccess();
+          setOpen(true);
+        }}
         className="min-h-9 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
       >
         Ask the data
