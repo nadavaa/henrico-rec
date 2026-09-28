@@ -74,9 +74,10 @@ const FUNCTIONAL_AREAS: CoverageRow[] = [
   },
   {
     area: "Marketing and Communications",
-    status: "Roadmap",
-    shows: "Not in the demo: no email/SMS, campaigns, or resident notifications.",
-    where: "—",
+    status: "Demonstrated",
+    shows:
+      "Staff can compose a message to a class roster, a facility's waitlist, or all active members, logged to a session Outbox (timestamp, audience, recipient count, subject). When a canceled booking frees a spot, the resident is auto-promoted off the waitlist, logged to the Outbox, and shown a banner in My Account — no real email/SMS is sent.",
+    where: "/staff/communications; /resident/account; lib/communications/",
   },
   {
     area: "Facility and Shelters",

@@ -7,6 +7,9 @@ export interface ClassBooking {
   amountCents: number;
   paymentId: string;
   createdAt: string;
+  // Set when a cancellation elsewhere automatically promoted this booking
+  // off the waitlist — shown as a banner in My Account.
+  promotedFromWaitlist?: boolean;
 }
 
 export interface MembershipPurchase {

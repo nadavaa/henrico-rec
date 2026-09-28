@@ -18,12 +18,18 @@ export function AccountView({
 }) {
   const { resident, bookings, membership, cancelBooking } = useResidentSession();
   const [announcement, setAnnouncement] = useState("");
+  const [dismissedPromotions, setDismissedPromotions] = useState<Set<string>>(new Set());
 
   const tier = membership ? tiers.find((t) => t.id === membership.tierId) : null;
+  const promotions = bookings.filter((b) => b.promotedFromWaitlist && !dismissedPromotions.has(b.id));
 
   function handleCancel(bookingId: string, programName: string) {
     cancelBooking(bookingId);
     setAnnouncement(`Canceled booking for ${programName}.`);
+  }
+
+  function dismissPromotion(bookingId: string) {
+    setDismissedPromotions((prev) => new Set(prev).add(bookingId));
   }
 
   return (
@@ -34,6 +40,34 @@ export function AccountView({
       <p aria-live="polite" className="sr-only">
         {announcement}
       </p>
+
+      {promotions.length > 0 && (
+        <div className="mt-4 space-y-2">
+          {promotions.map((booking) => {
+            const program = programs.find((p) => p.id === booking.programId);
+            return (
+              <div
+                key={booking.id}
+                role="status"
+                className="flex items-start justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900"
+              >
+                <p>
+                  A spot opened up — you&apos;re now booked for{" "}
+                  <strong>{program?.name ?? "your class"}</strong>!
+                </p>
+                <button
+                  type="button"
+                  onClick={() => dismissPromotion(booking.id)}
+                  aria-label="Dismiss notification"
+                  className="min-h-9 min-w-9 shrink-0 rounded-md text-emerald-700 hover:bg-emerald-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+                >
+                  <span aria-hidden="true">✕</span>
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <section className="mt-8">
         <h2 className="text-lg font-semibold text-slate-900">Upcoming Bookings</h2>
