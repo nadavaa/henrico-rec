@@ -81,10 +81,10 @@ const FUNCTIONAL_AREAS: CoverageRow[] = [
   },
   {
     area: "Facility and Shelters",
-    status: "Partially demonstrated",
+    status: "Demonstrated",
     shows:
-      "A directory of 5 facilities with address, description, and amenities; shelter/space reservations are out of scope.",
-    where: "data/seed.ts; /staff/programs",
+      "Attachment J §11.1 (search 7 reservable picnic shelters, rooms, and a pavilion by park and capacity), §11.1 (calendar-style date + 4 time-block selection, with booked blocks marked unavailable), §11.2.3 (request → pending approval → staff approve/deny workflow, with approvals blocking the slot), and §11.3 (recurring weekly bookings, with all resulting dates shown before confirming). Approved reservations flow into Staff revenue and the transactions table.",
+    where: "/resident/facilities; /staff/facilities; lib/facilities/",
   },
   {
     area: "Program and Activity",

@@ -42,7 +42,7 @@ export interface CapacityAlert {
 export interface TransactionRow {
   id: string;
   date: string;
-  type: "membership" | "enrollment";
+  type: "membership" | "enrollment" | "facility_reservation";
   memberName: string;
   itemLabel: string;
   amountCents: number;

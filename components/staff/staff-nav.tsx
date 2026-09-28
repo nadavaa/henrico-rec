@@ -8,6 +8,7 @@ import { AskDataButton } from "./ask-data-panel";
 const TABS = [
   { href: "/staff", label: "Overview" },
   { href: "/staff/programs", label: "Programs" },
+  { href: "/staff/facilities", label: "Facilities" },
   { href: "/staff/transactions", label: "Transactions" },
   { href: "/staff/communications", label: "Communications" },
   { href: "/staff/ai-audit", label: "AI Audit" },

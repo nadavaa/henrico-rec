@@ -1,5 +1,6 @@
-import type { Facility, MembershipTier, Member, Program, Transaction } from "@/data/types";
+import type { Facility, MembershipTier, Member, Program, ReservableSpace, Transaction } from "@/data/types";
 import type { ClassBooking, MembershipPurchase } from "@/lib/resident/types";
+import type { ReservationRequest } from "@/lib/facilities/types";
 import { getConfirmedSessionCount, getWaitlistCount } from "@/lib/resident/capacity";
 import { DEMO_RESIDENT } from "@/lib/resident/demo-resident";
 import { CATEGORY_LABELS } from "@/lib/resident/constants";
@@ -418,4 +419,36 @@ export function computeMembershipsByPark(
       revenueCents: rows.reduce((sum, r) => sum + r.amountCents, 0),
     };
   });
+}
+
+// Approved facility/shelter reservations (Attachment J §11), folded into the
+// same TransactionRow shape so they flow through revenue/KPI figures and the
+// Transactions table/CSV export automatically. Only approved requests count
+// as revenue — a pending request isn't a sale yet.
+export function buildFacilityReservationRows(
+  reservations: ReservationRequest[],
+  spaces: ReservableSpace[],
+): TransactionRow[] {
+  const spaceById = new Map(spaces.map((s) => [s.id, s]));
+  return reservations
+    .filter((r) => r.status === "approved")
+    .map((r) => {
+      const space = spaceById.get(r.spaceId);
+      return {
+        id: r.id,
+        // Dated to when payment was collected, not the (possibly far
+        // future, possibly recurring) event date — otherwise a "last 30
+        // days" filter would include it forever, since there's no upper
+        // bound on the date check elsewhere in this file.
+        date: r.createdAt.slice(0, 10),
+        type: "facility_reservation",
+        memberName: r.requesterName,
+        itemLabel: space?.name ?? "Facility reservation",
+        amountCents: r.amountCents,
+        paymentMethod: paymentMethodFor(r.id),
+        status: "Completed",
+        facilityId: space?.facilityId,
+        programId: undefined,
+      };
+    });
 }

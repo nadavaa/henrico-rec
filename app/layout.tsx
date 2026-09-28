@@ -4,6 +4,7 @@ import { SiteHeader } from "@/components/site-header";
 import { ResidentSessionProvider } from "@/lib/resident/session-context";
 import { AiAuditProvider } from "@/lib/ai/audit-context";
 import { OutboxProvider } from "@/lib/communications/outbox-context";
+import { FacilityReservationProvider } from "@/lib/facilities/reservation-context";
 import { getPrograms } from "@/lib/data";
 import "./globals.css";
 
@@ -40,9 +41,11 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         </a>
         <SiteHeader />
         <OutboxProvider>
-          <ResidentSessionProvider programs={programs}>
-            <AiAuditProvider>{children}</AiAuditProvider>
-          </ResidentSessionProvider>
+          <FacilityReservationProvider>
+            <ResidentSessionProvider programs={programs}>
+              <AiAuditProvider>{children}</AiAuditProvider>
+            </ResidentSessionProvider>
+          </FacilityReservationProvider>
         </OutboxProvider>
       </body>
     </html>

@@ -2,21 +2,32 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import type { Facility, MembershipTier, Program } from "@/data/types";
+import type { Facility, MembershipTier, Program, ReservableSpace } from "@/data/types";
 import { formatCents, formatDate } from "@/lib/format";
 import { useResidentSession } from "@/lib/resident/session-context";
+import { useFacilityReservations } from "@/lib/facilities/reservation-context";
+import { TIME_BLOCKS } from "@/lib/facilities/types";
 import { QrCode } from "./qr-code";
+
+const RESERVATION_STATUS_STYLES: Record<string, string> = {
+  pending: "bg-amber-100 text-amber-800",
+  approved: "bg-emerald-100 text-emerald-800",
+  denied: "bg-red-100 text-red-800",
+};
 
 export function AccountView({
   programs,
   facilities,
   tiers,
+  spaces,
 }: {
   programs: Program[];
   facilities: Facility[];
   tiers: MembershipTier[];
+  spaces: ReservableSpace[];
 }) {
   const { resident, bookings, membership, cancelBooking } = useResidentSession();
+  const { reservations } = useFacilityReservations();
   const [announcement, setAnnouncement] = useState("");
   const [dismissedPromotions, setDismissedPromotions] = useState<Set<string>>(new Set());
 
@@ -113,6 +124,45 @@ export function AccountView({
                   >
                     Cancel
                   </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      <section className="mt-10">
+        <h2 className="text-lg font-semibold text-slate-900">Facility Reservations</h2>
+        {reservations.length === 0 ? (
+          <p className="mt-2 rounded-lg border border-dashed border-slate-300 p-6 text-center text-slate-500">
+            No reservation requests yet.{" "}
+            <Link href="/resident/facilities" className="font-medium text-blue-700 hover:underline">
+              Browse facilities &amp; shelters
+            </Link>
+            .
+          </p>
+        ) : (
+          <ul className="mt-3 space-y-3">
+            {reservations.map((r) => {
+              const space = spaces.find((s) => s.id === r.spaceId);
+              const facility = space ? facilities.find((f) => f.id === space.facilityId) : null;
+              const block = TIME_BLOCKS.find((b) => b.id === r.timeBlockId);
+              return (
+                <li key={r.id} className="rounded-xl border border-slate-200 bg-white p-4">
+                  <p className="font-semibold text-slate-900">{space?.name ?? "Space"}</p>
+                  <p className="text-sm text-slate-600">
+                    {facility?.name} · {block?.label}
+                  </p>
+                  <p className="text-sm text-slate-600">{r.dates.join(", ")}</p>
+                  <span
+                    className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${RESERVATION_STATUS_STYLES[r.status]}`}
+                  >
+                    {r.status === "pending"
+                      ? "Pending approval"
+                      : r.status === "approved"
+                        ? "Approved"
+                        : "Denied"}
+                  </span>
                 </li>
               );
             })}

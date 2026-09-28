@@ -13,11 +13,13 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import type { Facility, Member, MembershipTier, Program, Transaction } from "@/data/types";
+import type { Facility, Member, MembershipTier, Program, ReservableSpace, Transaction } from "@/data/types";
 import { useResidentSession } from "@/lib/resident/session-context";
+import { useFacilityReservations } from "@/lib/facilities/reservation-context";
 import { formatCents } from "@/lib/format";
 import type { StaffFilters } from "@/lib/staff/types";
 import {
+  buildFacilityReservationRows,
   buildTransactionRows,
   computeCapacityAlerts,
   computeEnrollmentsByPark,
@@ -36,20 +38,26 @@ export function StaffOverview({
   members,
   tiers,
   transactions,
+  spaces,
 }: {
   programs: Program[];
   facilities: Facility[];
   members: Member[];
   tiers: MembershipTier[];
   transactions: Transaction[];
+  spaces: ReservableSpace[];
 }) {
   const { bookings, membership } = useResidentSession();
+  const { reservations } = useFacilityReservations();
   const [filters, setFilters] = useState<StaffFilters>({ facilityId: "all", rangeDays: 30 });
   const today = useMemo(() => new Date(), []);
 
   const transactionRows = useMemo(
-    () => buildTransactionRows(transactions, members, programs, tiers, bookings, membership),
-    [transactions, members, programs, tiers, bookings, membership],
+    () => [
+      ...buildTransactionRows(transactions, members, programs, tiers, bookings, membership),
+      ...buildFacilityReservationRows(reservations, spaces),
+    ],
+    [transactions, members, programs, tiers, bookings, membership, reservations, spaces],
   );
 
   const kpis = useMemo(

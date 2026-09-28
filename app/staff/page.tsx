@@ -1,13 +1,21 @@
-import { getFacilities, getMembers, getMembershipTiers, getPrograms, getTransactions } from "@/lib/data";
+import {
+  getFacilities,
+  getMembers,
+  getMembershipTiers,
+  getPrograms,
+  getReservableSpaces,
+  getTransactions,
+} from "@/lib/data";
 import { StaffOverview } from "@/components/staff/staff-overview";
 
 export default async function StaffOverviewPage() {
-  const [programs, facilities, members, tiers, transactions] = await Promise.all([
+  const [programs, facilities, members, tiers, transactions, spaces] = await Promise.all([
     getPrograms(),
     getFacilities(),
     getMembers(),
     getMembershipTiers(),
     getTransactions(),
+    getReservableSpaces(),
   ]);
 
   return (
@@ -17,6 +25,7 @@ export default async function StaffOverviewPage() {
       members={members}
       tiers={tiers}
       transactions={transactions}
+      spaces={spaces}
     />
   );
 }

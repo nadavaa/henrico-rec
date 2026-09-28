@@ -2,11 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import type { Facility, Member, MembershipTier, Program, Transaction } from "@/data/types";
+import type { Facility, Member, MembershipTier, Program, ReservableSpace, Transaction } from "@/data/types";
 import { useResidentSession } from "@/lib/resident/session-context";
+import { useFacilityReservations } from "@/lib/facilities/reservation-context";
 import { formatCents } from "@/lib/format";
 import type { DateRangeDays, StaffFilters } from "@/lib/staff/types";
-import { buildTransactionRows } from "@/lib/staff/metrics";
+import { buildFacilityReservationRows, buildTransactionRows } from "@/lib/staff/metrics";
 import { downloadCsv, transactionsToCsv } from "@/lib/staff/csv";
 import { FiltersBar } from "./filters-bar";
 
@@ -24,14 +25,17 @@ export function TransactionsTable({
   programs,
   tiers,
   facilities,
+  spaces,
 }: {
   transactions: Transaction[];
   members: Member[];
   programs: Program[];
   tiers: MembershipTier[];
   facilities: Facility[];
+  spaces: ReservableSpace[];
 }) {
   const { bookings, membership } = useResidentSession();
+  const { reservations } = useFacilityReservations();
   const searchParams = useSearchParams();
 
   const initialPark = searchParams.get("park");
@@ -44,8 +48,12 @@ export function TransactionsTable({
   const today = useMemo(() => new Date(), []);
 
   const allRows = useMemo(
-    () => buildTransactionRows(transactions, members, programs, tiers, bookings, membership),
-    [transactions, members, programs, tiers, bookings, membership],
+    () =>
+      [
+        ...buildTransactionRows(transactions, members, programs, tiers, bookings, membership),
+        ...buildFacilityReservationRows(reservations, spaces),
+      ].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0)),
+    [transactions, members, programs, tiers, bookings, membership, reservations, spaces],
   );
 
   const filteredRows = useMemo(() => {

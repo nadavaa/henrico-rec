@@ -9,6 +9,7 @@ import type {
   MembershipTier,
   Member,
   Transaction,
+  ReservableSpace,
 } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -98,6 +99,88 @@ export const facilities: Facility[] = [
     description:
       "Neighborhood recreation center focused on youth sports, art classes, and senior wellness.",
     amenities: ["Multipurpose rooms", "Outdoor courts", "Art studio"],
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Reservable spaces: picnic shelters, multipurpose rooms, and a pavilion,
+// across the 5 parks. Attachment J §11 (Facility and Shelters).
+// ---------------------------------------------------------------------------
+export const reservableSpaces: ReservableSpace[] = [
+  {
+    id: "space-01",
+    facilityId: "fac-tuckahoe",
+    name: "Tuckahoe Picnic Shelter A",
+    type: "picnic-shelter",
+    capacity: 50,
+    hourlyRateCents: 2500,
+    amenities: ["Grill", "Picnic tables", "Parking nearby"],
+    description:
+      "A shaded picnic shelter near the walking trail, popular for birthday parties and family gatherings.",
+  },
+  {
+    id: "space-02",
+    facilityId: "fac-deeprun",
+    name: "Deep Run Picnic Shelter",
+    type: "picnic-shelter",
+    capacity: 75,
+    hourlyRateCents: 3000,
+    amenities: ["Grill", "Picnic tables", "Electrical outlets"],
+    description:
+      "A large shelter adjacent to the playground, with power for music or catering equipment.",
+  },
+  {
+    id: "space-03",
+    facilityId: "fac-deeprun",
+    name: "Deep Run Multipurpose Room",
+    type: "multipurpose-room",
+    capacity: 40,
+    hourlyRateCents: 4000,
+    amenities: ["Tables & chairs", "Electrical outlets", "AV equipment"],
+    description:
+      "An indoor room inside the recreation center, suitable for meetings, classes, or small receptions.",
+  },
+  {
+    id: "space-04",
+    facilityId: "fac-dorey",
+    name: "Dorey Park Pavilion",
+    type: "pavilion",
+    capacity: 150,
+    hourlyRateCents: 6000,
+    amenities: ["Grill", "Picnic tables", "Electrical outlets", "Restrooms nearby"],
+    description:
+      "The largest reservable space in the county park system, ideal for community events and large gatherings.",
+  },
+  {
+    id: "space-05",
+    facilityId: "fac-dorey",
+    name: "Dorey Picnic Shelter B",
+    type: "picnic-shelter",
+    capacity: 60,
+    hourlyRateCents: 2500,
+    amenities: ["Grill", "Picnic tables"],
+    description: "A quieter shelter near the dog park, a short walk from parking.",
+  },
+  {
+    id: "space-06",
+    facilityId: "fac-belmont",
+    name: "Belmont Multipurpose Room",
+    type: "multipurpose-room",
+    capacity: 30,
+    hourlyRateCents: 3500,
+    amenities: ["Tables & chairs", "Electrical outlets"],
+    description:
+      "A flexible indoor room at Belmont Rec Center for meetings, workshops, or small parties.",
+  },
+  {
+    id: "space-07",
+    facilityId: "fac-hiddencreek",
+    name: "Hidden Creek Picnic Shelter",
+    type: "picnic-shelter",
+    capacity: 40,
+    hourlyRateCents: 2000,
+    amenities: ["Grill", "Picnic tables"],
+    description: "A cozy neighborhood shelter, well suited for smaller gatherings.",
   },
 ];
 

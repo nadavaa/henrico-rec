@@ -57,6 +57,19 @@ export interface Member {
   status: MemberStatus;
 }
 
+export type SpaceType = "picnic-shelter" | "multipurpose-room" | "pavilion";
+
+export interface ReservableSpace {
+  id: string;
+  facilityId: string;
+  name: string;
+  type: SpaceType;
+  capacity: number;
+  hourlyRateCents: number;
+  amenities: string[];
+  description: string;
+}
+
 export type TransactionType = "membership" | "enrollment";
 
 export interface Transaction {
