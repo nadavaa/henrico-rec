@@ -1,4 +1,5 @@
 import { getFacilities, getMembers, getMembershipTiers, getPrograms, getTransactions } from "@/lib/data";
+import { RoleGate } from "@/components/staff/role-gate";
 import { StaffNav } from "@/components/staff/staff-nav";
 
 export default async function StaffLayout({ children }: { children: React.ReactNode }) {
@@ -19,7 +20,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
         tiers={tiers}
         transactions={transactions}
       />
-      {children}
+      <RoleGate>{children}</RoleGate>
     </div>
   );
 }

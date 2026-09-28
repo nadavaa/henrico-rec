@@ -94,8 +94,25 @@ Generated in `data/seed.ts`:
 Bookings, membership purchases, and the AI audit log all live in React
 context at the root layout — there's no database and no login. That means
 they survive navigation anywhere in the app, but reset on a hard page
-reload. The demo resident is always "Alex Rivera"; the demo staff user in
-the AI audit log is always "Demo Staff".
+reload. The demo resident is always "Alex Rivera"; the staff identity in the
+AI audit log follows the demo role switcher (e.g. "Demo Admin").
+
+## Demo-only staff role switcher (no real authentication)
+
+The Staff header has a **demo-only role switcher** (Front Desk Staff, Program
+Manager, Admin) so you can demo least-privilege views without a login system.
+The role is React context state (`lib/staff/role-context.tsx`, permissions in
+`lib/staff/roles.ts`) that resets to Admin on reload. Nav links are filtered by
+role and `RoleGate` blocks direct navigation to pages a role can't open. Every
+time the AI assistant is opened or asked a question, the role is recorded in
+the AI audit log. Front Desk sees Programs/roster and Facilities only;
+Program Manager adds Overview (it shows revenue), Transactions, Communications,
+and the assistant; Admin adds the AI Audit log.
+
+A real implementation would need SSO/AD/SAML per RFP Attachment J,
+session-based authentication, and **server-side enforcement** of permissions
+(on routes, data access, and the audit log) — this demo's gating is
+client-side only and is not a security control.
 
 ## AI reporting assistant ("Ask the data")
 
@@ -131,7 +148,7 @@ interface — callers shouldn't need to change.
 | `MockProvider` (AI) | `lib/ai/provider.ts` | See "Wiring up AnthropicProvider" below. |
 | Seed data (`data/seed.ts`) via `lib/data/` | `lib/data/*.ts` | Stand up Postgres (e.g. Vercel Postgres via the Marketplace, or Supabase), write migrations for `facilities`, `programs`, `membership_tiers`, `members`, `transactions`, and replace each function body in `lib/data/` with a real query. Route/page code doesn't change. |
 | `MockPaymentProvider` | `lib/payments/provider.ts` | Integrate a real processor (e.g. Stripe), implement `charge()` against it, and add its secret key via `vercel env add`. No payments are processed today — this is a stub only. |
-| Auth (not yet implemented) | — | Add an auth provider (e.g. Auth.js, Clerk) in front of the Staff portal at minimum. |
+| Auth (not yet implemented) | `lib/staff/role-context.tsx` | Replace the demo role switcher with real SSO/AD/SAML-backed sessions and enforce roles server-side. |
 | Session state (React context) | `lib/resident/session-context.tsx`, `lib/ai/audit-context.tsx` | Replace with real persistence (a database + login) once auth exists, so bookings and the audit log survive beyond one browser session. |
 
 ### Wiring up AnthropicProvider

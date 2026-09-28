@@ -4,14 +4,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Facility, MembershipTier, Member, Program, Transaction } from "@/data/types";
 import { AskDataButton } from "./ask-data-panel";
+import { RoleSwitcher } from "./role-switcher";
+import { useStaffRole } from "@/lib/staff/role-context";
+import { can, type Permission } from "@/lib/staff/roles";
 
-const TABS = [
-  { href: "/staff", label: "Overview" },
-  { href: "/staff/programs", label: "Programs" },
-  { href: "/staff/facilities", label: "Facilities" },
-  { href: "/staff/transactions", label: "Transactions" },
-  { href: "/staff/communications", label: "Communications" },
-  { href: "/staff/ai-audit", label: "AI Audit" },
+const TABS: { href: string; label: string; permission: Permission }[] = [
+  { href: "/staff", label: "Overview", permission: "overview" },
+  { href: "/staff/programs", label: "Programs", permission: "programs" },
+  { href: "/staff/facilities", label: "Facilities", permission: "facilities" },
+  { href: "/staff/transactions", label: "Transactions", permission: "transactions" },
+  { href: "/staff/communications", label: "Communications", permission: "communications" },
+  { href: "/staff/ai-audit", label: "AI Audit", permission: "ai_audit" },
 ];
 
 export function StaffNav({
@@ -28,6 +31,8 @@ export function StaffNav({
   transactions: Transaction[];
 }) {
   const pathname = usePathname();
+  const { role } = useStaffRole();
+  const visibleTabs = TABS.filter((t) => can(role, t.permission));
 
   return (
     <nav
@@ -36,7 +41,7 @@ export function StaffNav({
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-2 sm:px-6">
         <ul className="flex gap-1 overflow-x-auto">
-          {TABS.map((tab) => {
+          {visibleTabs.map((tab) => {
             const isActive =
               tab.href === "/staff" ? pathname === "/staff" : pathname.startsWith(tab.href);
             return (
@@ -56,7 +61,8 @@ export function StaffNav({
             );
           })}
         </ul>
-        <div className="py-2">
+        <div className="flex items-center gap-3 py-2">
+          <RoleSwitcher />
           <AskDataButton
             facilities={facilities}
             programs={programs}

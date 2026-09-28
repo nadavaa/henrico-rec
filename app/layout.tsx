@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SiteHeader } from "@/components/site-header";
 import { ResidentSessionProvider } from "@/lib/resident/session-context";
+import { StaffRoleProvider } from "@/lib/staff/role-context";
 import { AiAuditProvider } from "@/lib/ai/audit-context";
 import { OutboxProvider } from "@/lib/communications/outbox-context";
 import { FacilityReservationProvider } from "@/lib/facilities/reservation-context";
@@ -40,13 +41,15 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           Skip to main content
         </a>
         <SiteHeader />
-        <OutboxProvider>
-          <FacilityReservationProvider>
-            <ResidentSessionProvider programs={programs}>
-              <AiAuditProvider>{children}</AiAuditProvider>
-            </ResidentSessionProvider>
-          </FacilityReservationProvider>
-        </OutboxProvider>
+        <StaffRoleProvider>
+          <OutboxProvider>
+            <FacilityReservationProvider>
+              <ResidentSessionProvider programs={programs}>
+                <AiAuditProvider>{children}</AiAuditProvider>
+              </ResidentSessionProvider>
+            </FacilityReservationProvider>
+          </OutboxProvider>
+        </StaffRoleProvider>
       </body>
     </html>
   );

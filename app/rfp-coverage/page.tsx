@@ -41,8 +41,8 @@ const FUNCTIONAL_AREAS: CoverageRow[] = [
     area: "Access Control",
     status: "Partially demonstrated",
     shows:
-      "A scannable membership QR code and a staff-side roster check-in toggle; no door/scanner hardware integration.",
-    where: "/resident/account; /staff/programs/[id]",
+      "Application-layer role-based access control (least privilege) for Front Desk, Program Manager, and Admin via a demo-only role switcher, enforced on both nav links and staff routes, with AI-assistant access logged per role in the audit log; plus a scannable membership QR code and a roster check-in toggle. Not real authentication: no SSO/AD/SAML (also required by Attachment J), no server-side enforcement, and no door/scanner hardware integration.",
+    where: "lib/staff/roles.ts; components/staff/role-gate.tsx; /staff/ai-audit; /resident/account; /staff/programs/[id]",
   },
   {
     area: "Mobile",
@@ -62,7 +62,7 @@ const FUNCTIONAL_AREAS: CoverageRow[] = [
     area: "Administration and Controls",
     status: "Roadmap",
     shows:
-      "Not in the demo: a single fixed \"Demo Staff\" user, with no roles, permissions, or configuration screens or code.",
+      "Not in the demo: no configuration screens, and roles are a fixed, demo-only three-role switcher (see Access Control) rather than administrable permissions or users.",
     where: "—",
   },
   {
