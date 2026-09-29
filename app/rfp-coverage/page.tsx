@@ -254,6 +254,14 @@ export default function RfpCoveragePage() {
           {" "}(15 total)
         </p>
 
+        <p className="mt-3 max-w-3xl text-sm text-slate-600">
+          <strong>Accessibility (Section 508 / WCAG 2.1 AA):</strong> A Lighthouse accessibility audit was
+          run against core resident and staff pages, scoring 95/100, addressing the RFP&apos;s Section
+          508/WCAG 2.1 AA requirement at a page level. This is not the full Accessibility Conformance
+          Report that Attachment J requires as a contract deliverable — that is a roadmap item, not
+          something this demo attempts.
+        </p>
+
         <h2 className="mt-10 text-xl font-bold text-slate-900">
           AI Clause (Section VIII.C) Coverage
         </h2>
